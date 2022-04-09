@@ -7,7 +7,7 @@ A full module documentation can be found at https://dynamical-network-analysis.r
 
 This tutorial was prepared and released along with the publication:
 
-* Generalized correlation-based dynamical network analysis: a new high-performance approach for identifying allosteric communications in molecular dynamics trajectories. J. Chem. Phys. (2020). DOI: `10.1063/5.0018980 <https://doi.org/10.1063/5.0018980>`_
+* [Generalized correlation-based dynamical network analysis: a new high-performance approach for identifying allosteric communications in molecular dynamics trajectories. J. Chem. Phys. (2020). DOI: 10.1063/5.0018980](https://doi.org/10.1063/5.0018980)
 
 ## Installing Requirements
 
