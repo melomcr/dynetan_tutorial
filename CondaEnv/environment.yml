@@ -1,0 +1,34 @@
+name: DyNetAnTutorial
+
+channels:
+  - conda-forge
+  - defaults
+  
+dependencies:
+    - python>=3.8.*
+    - pip>=20.*
+    - colorama
+    - h5py
+    - jupyter
+    - ipywidgets
+    - mdanalysis
+    - networkx
+    - nglview
+    - numba
+    - numpy
+    - pandas
+    - pympler
+    - python-louvain
+    - scipy
+    - tzlocal
+    - rpy2
+    - r-data.table 
+    - r-ggplot2
+    - r-ggrepel
+    - r-gdata
+    - r-rcolorbrewer
+    - r-colorramps
+    - r-rpref
+    - pip:
+        - dynetan
+
