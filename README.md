@@ -5,6 +5,10 @@ The python module repository can be found at https://github.com/melomcr/dynetan
 
 A full module documentation can be found at https://dynamical-network-analysis.readthedocs.io/en/latest/index.html
 
+This tutorial was prepared and released along with the publication:
+
+* Generalized correlation-based dynamical network analysis: a new high-performance approach for identifying allosteric communications in molecular dynamics trajectories. J. Chem. Phys. (2020). DOI: `10.1063/5.0018980 <https://doi.org/10.1063/5.0018980>`_
+
 ## Installing Requirements
 
 There are two main ways to instll all dependencies to execute this tutorial: The first is by creating a Conda environment, the second is by manually installing system packages, and Python and R packages. We provide examples for both method below.
