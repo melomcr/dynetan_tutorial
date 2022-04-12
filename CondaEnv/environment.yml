@@ -15,7 +15,7 @@ dependencies:
     - networkx
     - nglview
     - numba
-    - numpy
+    - numpy>=1.22
     - pandas
     - pympler
     - python-louvain
