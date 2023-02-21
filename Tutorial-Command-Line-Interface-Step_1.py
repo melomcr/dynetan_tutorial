@@ -4,10 +4,12 @@
 
 # Load the python package
 import dynetan as dna
-from dynetan.toolkit import getSelFromNode, getNodeFromSel
+from dynetan.toolkit import getSelFromNode
 
 import os
 import networkx as nx
+from itertools import islice
+import warnings
 
 # Here we turn off `notebookMode` to activate progress bars in the
 # command line.
@@ -41,15 +43,6 @@ numWinds = 4
 # Sampled frames per window
 numSampledFrames = 10
 
-# Number of sampled frames for automatic selection of solvent and ions.
-# numAutoFrames = numSampledFrames*numWinds
-
-# Network Analysis will auomatically create one node per protein residue (in the alpha carbon).
-# This selection can be modified for one or all amino acids by manually defining node groups.
-
-# For non-proteic and non-canonical residues, the user must specify atom(s) that will represent a node.
-# We also need to know the heavy atoms that compose each node group.
-
 usrNodeGroups = {}
 
 usrNodeGroups["TIP3"] = {}
@@ -75,23 +68,23 @@ dnap.setNumWinds(numWinds)
 dnap.setNumSampledFrames(numSampledFrames)
 dnap.setCutoffDist(cutoffDist)
 dnap.setContactPersistence(contactPersistence)
-dnap.seth2oName(h2oName)
+dnap.setSolvNames(h2oName)
 dnap.setSegIDs(segIDs)
 
-dnap.setUsrNodeGroups(usrNodeGroups)
+dnap.setNodeGroups(usrNodeGroups)
 
 ######################################################################
 ######### Load topology and trajectory files #######
 ######################################################################
 
-print("Loading topology file {} and trajectory file(s) {}.".format(psfFile,dcdFiles))
+print("Loading topology file {} and trajectory file(s) {}.".format(psfFile, dcdFiles))
 
-dnap.loadSystem(psfFile,dcdFiles)
+dnap.loadSystem(psfFile, dcdFiles)
 
 print("System loaded.")
 
 # We can access the trajectory data directly.
-print("MDAnalysis universe:",dnap.getU().trajectory)
+print("MDAnalysis universe:", dnap.getU().trajectory)
 
 ######################################################################
 ######### Prepare system for network calculations  #######
@@ -115,14 +108,14 @@ dnap.findContacts(stride=1, verbose=True)
 
 # This may be necessary for systems with low default recursion limits.
 import sys
-print("Recursion limit:",sys.getrecursionlimit())
+print("Recursion limit:", sys.getrecursionlimit())
 sys.setrecursionlimit(3000)
-print("New recursion limit:",sys.getrecursionlimit())
+print("New recursion limit:", sys.getrecursionlimit())
 
 print("Filtering contacts...")
 dnap.filterContacts(notSameRes=True, notConsecutiveRes=False, removeIsolatedNodes=True)
 
-dnap.calcCor(ncores=1)
+dnap.calcCor(ncores=4)
 
 ######################################################################
 ######### Determine cartesian distances  #######
@@ -137,7 +130,8 @@ dnap.calcCartesian(backend="serial")
 dnap.calcGraphInfo()
 
 # Basic information of the network as interpreted as a graph.
-print("Graph with {} nodes and {} edges".format(len(dnap.nxGraphs[0].nodes), len(dnap.nxGraphs[0].edges)) )
+print("Graph with {} nodes and {} edges".format(len(dnap.nxGraphs[0].nodes),
+                                                len(dnap.nxGraphs[0].edges)))
 
 # Both density and transitivity are scaled from 0 to 1
 for win in range(dnap.numWinds):
@@ -151,30 +145,30 @@ from operator import itemgetter
 # We can check the nodes that have the most connections in each window.
 for win in range(dnap.numWinds):
     print("----- Window {} -----".format(win))
-    
+
     sorted_degree = sorted(dnap.getDegreeDict(win).items(), key=itemgetter(1), reverse=True)
-    
+
     print("Top 5 nodes by degree: [node --> degree : selection]")
     for n,d in sorted_degree[:5]:
         print("{0:>4} --> {1:>2} : {2}".format(n, d, getSelFromNode(n, dnap.nodesAtmSel)))
-    
+
     print()
 
 # calculate optimal paths
 print("Calculating optimal paths...")
-dnap.calcOptPaths(ncores=1)
+dnap.calcOptPaths(ncores=4)
 
-print("Calculating edge betweeness...")
-# calculate betweeness values
-dnap.calcBetween(ncores=1)
+print("Calculating edge betweenness...")
+# calculate betweenness values
+dnap.calcBetween(ncores=4)
 
-from itertools import islice
-
-print("Here are the top 5 pairs of nodes based on Betweeness values, compared to their correlation values (in Window 0):")
-for k,v in islice(dnap.btws[0].items(),5):
-    print("\tNodes {} have betweenes {} and correlation {}.".format(k, 
-                                                                  round(v,3), 
-                                                                  round(dnap.corrMatAll[0, k[0], k[1]], 3) ) )
+print("Here are the top 5 pairs of nodes based on Betweenness values, "
+      "compared to their correlation values (in Window 0):")
+for k, v in islice(dnap.btws[0].items(),5):
+    node_pair = k
+    btw = round(v, 3)
+    corr = round(dnap.corrMatAll[0, k[0], k[1]], 3)
+    print(f"\tNodes {node_pair} have betweenness {btw} and correlation {corr}.")
 
 dnap.calcEigenCentral()
 
@@ -183,13 +177,14 @@ dnap.calcCommunities()
 print("Here are the top 5 communities based on number of nodes:")
 # Sort communities based on number of nodes
 for comIndx in islice(dnap.nodesComm[0]["commOrderSize"], 5):
-    print("Modularity Class {0:>2}: {1:>3} nodes.".format(comIndx, len(dnap.nodesComm[0]["commNodes"][comIndx])))
+    print("Modularity Class {0:>2}: {1:>3} nodes.".format(comIndx,
+                                                          len(dnap.nodesComm[0]["commNodes"][comIndx])))
 
 print("Here are the top 5 communities based on Eigenvector Centrality:")
-# Sort communities based on the node with highest eigenvector centrality
+# Sort communities based on the node with the highest eigenvector centrality
 for comIndx in islice(dnap.nodesComm[0]["commOrderEigenCentr"], 5):
     print("Modularity Class {0} ({1} nodes) Sorted by Eigenvector Centrality:".format(
-                                                                    comIndx, 
+                                                                    comIndx,
                                                                 len(dnap.nodesComm[0]["commNodes"][comIndx])))
     for node in dnap.nodesComm[0]["commNodes"][comIndx][:5]:
         print("Name: {0:>4} | Degree: {1:>2} | Eigenvector Centrality: {2}".format(
@@ -200,7 +195,9 @@ for comIndx in islice(dnap.nodesComm[0]["commOrderEigenCentr"], 5):
 ######### Determine Interface Properties #######
 ######################################################################
 
-dnap.interfaceAnalysis(selAstr="segid ENZY", selBstr="segid OMP")
+# This method returns the number of unique nodes in interface node pairs.
+num_nodes = dnap.interfaceAnalysis(selAstr="segid ENZY", selBstr="segid OMP")
+print(f"There are {num_nodes} nodes making contacts along the complex interface.")
 
 ######################################################################
 ######### Save data for analysis and plots #######
@@ -219,14 +216,20 @@ dnap.saveData(fullPathRoot)
 # This function will also produce a PDB file so that information on atoms and residues can be loaded to
 #    visualization software such as VMD.
 
-dcdstride = 1
+dcd_stride = 1
+num_atoms = dnap.workU.atoms.n_atoms
+num_frames = len(dnap.workU.trajectory[::dcd_stride])
 
-print("We will save {} heavy atoms and {} frames.".format(dnap.workU.atoms.n_atoms, 
-                                                          len(dnap.workU.trajectory[::dcdstride]) ))
+print(f"We will save {num_atoms} heavy atoms and {num_frames} frames.")
 
-dnap.saveReducedTraj(fullPathRoot, stride = dcdstride)
+# MDAnalysis may print warnings regarding missing data fields, such as altLocs,
+# icodes, occupancies, or tempfactor, which provide information commonly found
+# in PDB files. The warnings are for your information, and in the context of
+# this tutorial, they are expected and do not indicate a problem. We will silence
+# such "UserWarning"s for clarity.
+warnings.filterwarnings("ignore", category=UserWarning)
 
-print("It is normal to find warnings from MDanalysis due to missing PDB attributes, such as occupancies. This is not important for DyNetAn since we are mainly looking for atom IDs and positions. The rest of the relevant information has been stored in a topology file.")
+dnap.saveReducedTraj(fullPathRoot, stride=dcd_stride)
 
 ######################################################################
 ######### END OF TUTORIAL #######
