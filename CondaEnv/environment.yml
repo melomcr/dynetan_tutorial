@@ -3,26 +3,14 @@ name: DyNetAnTutorial
 channels:
   - conda-forge
   - defaults
-  
+
 dependencies:
-    - python>=3.8.*
+    - python >=3.9.*, <3.11 # Numba only supports python < 3.11
     - pip>=20.*
-    - colorama
-    - h5py
     - jupyter
-    - ipywidgets
-    - mdanalysis
-    - networkx
-    - nglview
-    - numba
-    - numpy>=1.22
-    - pandas
-    - pympler
-    - python-louvain
-    - scipy
-    - tzlocal
+    - ipywidgets <8 # Prevents NGL View issue 1032
     - rpy2
-    - r-data.table 
+    - r-data.table
     - r-ggplot2
     - r-ggrepel
     - r-gdata
@@ -30,5 +18,5 @@ dependencies:
     - r-colorramps
     - r-rpref
     - pip:
-        - dynetan>=1.2
+        - dynetan>=2.*
 
