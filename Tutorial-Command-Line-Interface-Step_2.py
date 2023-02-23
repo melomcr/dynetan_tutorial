@@ -85,6 +85,8 @@ if not os.path.exists(workDir):
 
 verbosity = True
 
+skipPlots = False
+
 # Plot sizes
 plotW = 3500
 plotH = 1800
@@ -114,8 +116,8 @@ pdbVizFile = fullPathRoot + "_reducedTraj.pdb"
 
 workUviz = mda.Universe(pdbVizFile, dcdVizFile)
 
-# If we are loading the first trajectory of the notebook, we need to create the 
-# dnad.nodesAtmSel structure to make selections on the universe based on node indices. 
+# If we are loading the first trajectory of the notebook, we need to create the
+# dnad.nodesAtmSel structure to make selections on the universe based on node indices.
 # This is mostly used for visualizations.
 
 # We add this to the object for ease of access.
@@ -147,10 +149,10 @@ import networkx.algorithms.community.quality as nxquality
 # Creates a list of windows and order them according to graph modularity.
 windModul = []
 for window in range(dnad.numWinds):
-    modul = nxquality.modularity(dnad.nxGraphs[window], 
+    modul = nxquality.modularity(dnad.nxGraphs[window],
                          [ set(nodesList) for nodesList in dnad.nodesComm[window]["commNodes"].values()])
     windModul.append((window, modul))
-    
+
 windModul.sort(key=lambda x:x[1], reverse=True)
 
 # Keep the window with the highest modularity as a reference for community matching
@@ -158,7 +160,7 @@ refWindow = windModul[0][0]
 
 for wind, mod in windModul[:5]:
     print( "Window {} has modularity {:1.4f}.".format(wind, mod) )
-    
+
 print("Using reference window {0} with highest modularity {1:<1.4}".format(*windModul[0]))
 
 def matchComm(mCommID, mWindow, refWindow, dnad, cutoff=1):
@@ -168,7 +170,7 @@ def matchComm(mCommID, mWindow, refWindow, dnad, cutoff=1):
     Communities at the reference window with less than *cutoff* percent of nodes
     are ignored.
     """
-    
+
     trgtComm = -1
     intersectSize = 0
     for commID in dnad.nodesComm[refWindow]["commOrderSize"]:
@@ -176,30 +178,30 @@ def matchComm(mCommID, mWindow, refWindow, dnad, cutoff=1):
         commSize = len(dnad.nodesComm[refWindow]["commNodes"][commID])
         if commSize < cutoff:
             continue
-        
-        tmpSize = len( set(dnad.nodesComm[refWindow]["commNodes"][commID]).intersection( 
+
+        tmpSize = len( set(dnad.nodesComm[refWindow]["commNodes"][commID]).intersection(
             set(dnad.nodesComm[mWindow]["commNodes"][mCommID]) ) )
-        
+
         # Selects the largets intersection
         if intersectSize < tmpSize:
             intersectSize = tmpSize
             trgtComm = commID
-    
+
     return trgtComm, intersectSize
 
 communities = defaultdict(list)
 for window in range(dnad.numWinds):
     for commID in dnad.nodesComm[window]["commOrderSize"]:
-        
+
         # Skip community if it has less than one percent of the nodes.
         commSize = len(dnad.nodesComm[window]["commNodes"][commID])
         if commSize < cutoff:
             continue
-        
+
         matchID, interSize = matchComm(commID, window, refWindow, dnad, cutoff)
-        
+
         communities[matchID].append( (commID, interSize, window) )
-        
+
 communities = {key:val for (key,val) in communities.items() }
 communities.keys()
 
@@ -242,7 +244,7 @@ for genCommID, group in grpBy:
         for node in range(dnad.numNodes):
             if dnad.nxGraphs[winIndx].nodes[node]["modularity"] == commID:
                 nodeCommNP[node, winIndx] = genCommID
-                
+
 
 # Removes nodes that were not classified in a "big-nough" (bigger than 1%) cluster in *any* window.
 nodeCommDF = pd.DataFrame(data=nodeCommNP,columns=["Window"+str(i) for i in range(dnad.numWinds)])
@@ -278,12 +280,12 @@ def getTagStr(i):
         atmStr = ":" + dnad.nodesAtmSel.atoms[i].name
     else:
         atmStr = ""
-        
+
     retStr = dnad.nodesAtmSel.atoms[i].resname.capitalize() + \
             ":" + str(dnad.nodesAtmSel.atoms[i].resid) + \
             atmStr + \
             "_" + dnad.nodesAtmSel.atoms[i].segid
-            
+
     return retStr
 
 nodeCommDFmelt['resid']     = np.vectorize(getTagStr)(nodeCommDFmelt["Node"])
@@ -295,7 +297,7 @@ nodeCommDFmelt.to_csv(os.path.join(workDir, "cluster.csv"),index=False)
 contactNodes = np.unique( np.where( dnad.corrMatAll[:,trgtNodes,:] > 0 )[2] )
 contactNodesTrgts = list(trgtNodes)
 for node in contactNodes:
-    if len( set(trgtClusters).intersection( 
+    if len( set(trgtClusters).intersection(
             set(np.unique(nodeCommDFmelt.loc[ nodeCommDFmelt["Node"] == node].Cluster)) ) ) :
         contactNodesTrgts.append(node)
 
@@ -614,19 +616,22 @@ dataTmp = []
 window = 0
 for window in range(dnad.numWinds):
 
-    df = pd.DataFrame(np.asarray([ (i,trgt) for trgt in trgtNodes  for i in range(dnad.numNodes)]),
+    df = pd.DataFrame(np.asarray([ (i,trgt) for trgt in trgtNodes for i in range(dnad.numNodes)]),
                  columns=["node", "targets"])
 
     df["distances"]  = df.apply( lambda row: dnad.distsAll[window, row["node"], row["targets"]], axis=1)
     # Selects the mean distance (0:mean, 1:SEM, 2:Min, 3:Max)
     distType = 0
-    df["cdistances"] = df.apply( lambda row: getCartDist(row["node"], row["targets"], dnad.numNodes,
+    df["cdistances"] = df.apply( lambda row: getCartDist(int(row["node"]),
+                                                         int(row["targets"]), dnad.numNodes,
                                                          dnad.nodeDists, distType), axis=1)
     # Selects the standard error of the mean distance (0:mean, 1:SEM, 2:Min, 3:Max)
     distType = 1
-    df["cdistSEM"] = df.apply( lambda row: getCartDist(row["node"], row["targets"], dnad.numNodes,
-                                                         dnad.nodeDists, distType), axis=1)
-    df["path"]       = df.apply( lambda row: list(getPath(row["node"], row["targets"],
+    df["cdistSEM"] = df.apply( lambda row: getCartDist(int(row["node"]),
+                                                       int(row["targets"]), dnad.numNodes,
+                                                       dnad.nodeDists, distType), axis=1)
+    df["path"]       = df.apply( lambda row: list(getPath(int(row["node"]),
+                                                          int(row["targets"]),
                                                           dnad.nodesAtmSel, dnad.preds, win= window)), axis=1)
     df['path_lens']  = df.apply( lambda row: len(row["path"]), axis=1)
 #     df["mincdist"]   = df.groupby("node")[["cdistances"]].transform(lambda x: np.min(x) )
@@ -843,7 +848,6 @@ if not skipPlots:
 # Here we visualize the residues that make direct connections to the ligand,
 # and display their generalized correlation coefficients.
 
-skipPlots = False
 if not skipPlots:
 
     print("\nCreating plot: AAres VS Correlation (at interface)")
