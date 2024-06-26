@@ -5,10 +5,10 @@ channels:
   - defaults
 
 dependencies:
-    - python >=3.9.*, <3.11 # Numba only supports python < 3.11
+    - python >=3.9.*
     - pip>=20.*
     - jupyter
-    - ipywidgets <8 # Prevents NGL View issue 1032
+    - ipywidgets
     - rpy2
     - r-data.table
     - r-ggplot2
