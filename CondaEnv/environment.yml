@@ -18,5 +18,5 @@ dependencies:
     - r-colorramps
     - r-rpref
     - pip:
-        - dynetan>=2.*
+        - dynetan>=2
 
