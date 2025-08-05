@@ -1,9 +1,9 @@
 # Dynamic Network Analysis - Tutorial
 A series of tutorials for the application of Dynamical Network Analysis using Generalized Correlations.
 
-The python module repository can be found at https://github.com/melomcr/dynetan
+The python module repository can be found at https://gitlab.com/comp-biochem-csu/dynetan
 
-A full module documentation can be found at https://dynamical-network-analysis.readthedocs.io/en/latest/index.html
+Full module documentation can be found at https://dynamical-network-analysis.readthedocs.io/en/latest/index.html
 
 This tutorial was prepared and released along with the publication:
 
